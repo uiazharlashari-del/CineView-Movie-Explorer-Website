@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineView - Movie Explorer</title>
+<style>
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #0d0d0d;
+        color: #ffffff;
+        overflow-x: hidden;
+    }
+
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 40px;
+        background: rgba(13, 13, 13, 0.95);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        border-bottom: 1px solid #1c1c1c;
+        backdrop-filter: blur(10px);
+    }
+
+    .logo {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: 1px;
+    }
+
+    .logo span {
+        color: #eeeaf0;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 25px;
+    }
+
+    .nav-links a {
+        color: #f1eeee;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+        color: #ffffff;
+    }
+
+    .search-wrapper {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .search-box {
+        display: flex;
+        background: #1c1c1c;
+        border-radius: 25px;
+        padding: 5px 5px 5px 15px;
+        align-items: center;
+        border: 1px solid #2a2a2a;
+    }
+
+    .search-box input {
+        background: transparent;
+        border: none;
+        color: white;
+        outline: none;
+        font-size: 14px;
+        width: 450px;
+    }
+
+    .search-box button {
+        background: #6308a4;
+        border: none;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.3s;
+    }
+
+    .search-box button:hover {
+        background: #7a0cc5;
+    }
+
+    /* HERO CAROUSEL */
+    .hero-carousel {
+        position: relative;
+        height: 500px;
+        width: 100%;
+        background: #000;
+        overflow: hidden;
+    }
+
+    .slides-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .slide.active {
+        opacity: 1;
+        z-index: 1;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to top, #0d0d0d 15%, rgba(13, 13, 13, 0.4) 60%, rgba(13, 13, 13, 0.8) 100%);
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        padding: 40px;
+        max-width: 650px;
+        margin-bottom: 20px;
+    }
+
+    .hero-content h1 {
+        font-size: 42px;
+        margin: 0 0 10px 0;
+        font-weight: 800;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+    }
+
+    .hero-meta {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 15px;
+        font-size: 14px;
+        color: #cccccc;
+    }
+
+    .hero-rating {
+        color: #ffbd03;
+        font-weight: bold;
+    }
+
+    .hero-desc {
+        font-size: 16px;
+        line-height: 1.5;
+        color: #dddddd;
+        margin: 0;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .carousel-dots {
+        position: absolute;
+        bottom: 25px;
+        right: 40px;
+        display: flex;
+        gap: 10px;
+        z-index: 10;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .dot.active {
+        background: #6308a4;
+        width: 25px;
+        border-radius: 5px;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+        padding: 40px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    h2.section-title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-top: 0;
+        margin-bottom: 25px;
+        position: relative;
+        padding-left: 15px;
+    }
+
+    h2.section-title::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 4px;
+        height: 20px;
+        width: 4px;
+        background: #6308a4;
+        border-radius: 2px;
+    }
+
+    /* MOVIE GRID */
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 25px;
+    }
+
+    .card {
+        background: #1c1c1c;
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 1px solid #2a2a2a;
+        transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card:hover {
+        transform: scale(1.04);
+        box-shadow: 0 10px 20px rgba(99, 8, 164, 0.2);
+    }
+
+    .card img {
+        width: 100%;
+        aspect-ratio: 2/3;
+        object-fit: cover;
+        display: block;
+        background: #252525;
+    }
+
+    .card-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+    }
+
+    .card-body h3 {
+        font-size: 16px;
+        margin: 0 0 8px 0;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 13px;
+        color: #aaa;
+        margin-bottom: 10px;
+    }
+
+    .card-meta .rating {
+        color: #ffbd03;
+        font-weight: bold;
+    }
+
+    .card-body p {
+        font-size: 13px;
+        color: #cccccc;
+        line-height: 1.4;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* PURE CSS LOADER */
+    .loader {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #1c1c1c;
+        border-top-color: #6308a4;
+        border-radius: 50%;
+        margin: 40px auto;
+        animation: spin 1s linear infinite;
+        display: none;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .status-message {
+        text-align: center;
+        font-size: 16px;
+        color: #aaa;
+        padding: 40px;
+        grid-column: 1 / -1;
+    }
+
+    /* MODAL OVERLAY */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(5px);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .modal.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #1c1c1c;
+        width: 100%;
+        max-width: 750px;
+        border-radius: 16px;
+        border: 1px solid #333;
+        position: relative;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        animation: fadeIn 0.3s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    #closeBtn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 10;
+        transition: color 0.3s;
+    }
+
+    #closeBtn:hover {
+        color: #6308a4;
+    }
+
+    .details-layout {
+        display: flex;
+        gap: 30px;
+        padding: 30px;
+    }
+
+    .details-poster img {
+        width: 240px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        display: block;
+    }
+
+    .details-info {
+        flex-grow: 1;
+    }
+
+    .details-info h2 {
+        font-size: 28px;
+        margin: 0 0 5px 0;
+        font-weight: 700;
+    }
+
+    .tagline {
+        font-style: italic;
+        color: #aaa;
+        margin-bottom: 15px;
+        font-size: 15px;
+    }
+
+    .meta-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .pill {
+        background: #2a2a2a;
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        color: #ddd;
+        font-weight: 500;
+    }
+
+    .pill.accent {
+        background: #6308a4;
+        color: white;
+    }
+
+    .details-info h4 {
+        margin: 0 0 8px 0;
+        font-size: 15px;
+        color: #aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .details-info p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #e0e0e0;
+        margin: 0;
+    }
+
+    /* RESPONSIVE DESIGN */
+    @media (max-width: 1200px) {
+        .movie-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    @media (max-width: 992px) {
+        .movie-grid { grid-template-columns: repeat(2, 1fr); }
+        .details-layout { flex-direction: column; align-items: center; text-align: center; }
+        .meta-pills { justify-content: center; }
+        .header { padding: 15px 20px; }
+    }
+
+    @media (max-width: 650px) {
+        .header { flex-direction: column; gap: 15px; text-align: center; }
+        .search-wrapper { width: 100%; justify-content: center; }
+        .hero-carousel { height: 400px; }
+        .hero-content h1 { font-size: 28px; }
+        .hero-content { padding: 20px; }
+        .carousel-dots { right: 20px; bottom: 15px; }
+    }
+
+    @media (max-width: 480px) {
+        .movie-grid { grid-template-columns: 1fr; }
+        .container { padding: 20px; }
+        .search-box input { width: 100%; }
+        .search-box { width: 100%; }
+    }
+</style>
+</head>
+<body>
+
+<header class="header">
+    <div class="logo"><span>Cine</span>View</div>
+    <nav class="nav-links">
+        <a href="#" id="homeLink">Home</a>
+        <a href="#" id="popularLink">Popular</a>
+        <a href="#" id="topRatedLink">Top Rated</a>
+    </nav>
+    <div class="search-wrapper">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search movies...">
+            <button id="searchBtn">Search</button>
+        </div>
+    </div>
+</header>
+
+<section class="hero-carousel">
+    <div id="slidesContainer" class="slides-container"></div>
+    <div id="carouselDots" class="carousel-dots"></div>
+</section>
+
+<main class="container">
+    <h2 id="sectionTitle" class="section-title">Trending Now</h2>
+    <div id="loader" class="loader"></div>
+    <div id="movieGrid" class="movie-grid"></div>
+</main>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <button id="closeBtn">&times;</button>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+const API_KEY = "313ef99eb3302da1aa45253542325060";
+const BASE_URL = "https://api.themoviedb.org/3";
+const IMAGE_URL = "https://image.tmdb.org/t/p/w500";
+const ORIGINAL_IMG = "https://image.tmdb.org/t/p/original";
+
+const grid = document.getElementById("movieGrid");
+const loader = document.getElementById("loader");
+const sectionTitle = document.getElementById("sectionTitle");
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
+const modal = document.getElementById("modal");
+const modalBody = document.getElementById("modalBody");
+const closeBtn = document.getElementById("closeBtn");
+const slidesContainer = document.getElementById("slidesContainer");
+const carouselDots = document.getElementById("carouselDots");
+
+const homeLink = document.getElementById("homeLink");
+const popularLink = document.getElementById("popularLink");
+const topRatedLink = document.getElementById("topRatedLink");
+
+let currentSlideIndex = 0;
+let sliderTimerId = null;
+
+window.addEventListener("DOMContentLoaded", () => {
+    if (!API_KEY || API_KEY.trim() === "") {
+        grid.innerHTML = `<div class="status-message">API key not configured.</div>`;
+        return;
+    }
+    fetchMovies(`${BASE_URL}/trending/movie/day?api_key=${API_KEY}`, "Trending Now", true);
+});
+
+async function fetchMovies(url, title, initSlider = false) {
+    try {
+        loader.style.display = "block";
+        grid.innerHTML = "";
+        sectionTitle.textContent = title;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("API Failure State");
+        const data = await res.json();
+
+        loader.style.display = "none";
+
+        if (!data.results || data.results.length === 0) {
+            grid.innerHTML = `<div class="status-message">No movies found.</div>`;
+            return;
+        }
+
+        if (initSlider) {
+            setupHeroSlider(data.results.slice(0, 5));
+        }
+
+        data.results.forEach(movie => {
+            createCard(movie);
+        });
+    } catch (err) {
+        loader.style.display = "none";
+        grid.innerHTML = `<div class="status-message" style="color:#ff4d4d;">API Error. Failed to load dataset.</div>`;
+    }
+}
+
+function setupHeroSlider(movies) {
+    clearInterval(sliderTimerId);
+    slidesContainer.innerHTML = "";
+    carouselDots.innerHTML = "";
+    currentSlideIndex = 0;
+
+    movies.forEach((movie, idx) => {
+        const slide = document.createElement("div");
+        slide.className = `slide ${idx === 0 ? "active" : ""}`;
+        const bkgUrl = movie.backdrop_path ? `${ORIGINAL_IMG}${movie.backdrop_path}` : '';
+        slide.style.backgroundImage = `url('${bkgUrl}')`;
+
+        const overlay = document.createElement("div");
+        overlay.className = "hero-overlay";
+
+        const content = document.createElement("div");
+        content.className = "hero-content";
+
+        const h1 = document.createElement("h1");
+        h1.textContent = movie.title;
+
+        const meta = document.createElement("div");
+        meta.className = "hero-meta";
+
+        const ratingSpan = document.createElement("span");
+        ratingSpan.className = "hero-rating";
+        ratingSpan.textContent = `⭐ ${movie.vote_average ? movie.vote_average.toFixed(1) : "0.0"}`;
+
+        const yearSpan = document.createElement("span");
+        yearSpan.textContent = movie.release_date ? movie.release_date.split("-")[0] : "N/A";
+
+        const desc = document.createElement("p");
+        desc.className = "hero-desc";
+        desc.textContent = movie.overview || "No preview statement configured.";
+
+        meta.appendChild(ratingSpan);
+        meta.appendChild(yearSpan);
+        content.appendChild(h1);
+        content.appendChild(meta);
+        content.appendChild(desc);
+        slide.appendChild(overlay);
+        slide.appendChild(content);
+        slidesContainer.appendChild(slide);
+
+        const dot = document.createElement("div");
+        dot.className = `dot ${idx === 0 ? "active" : ""}`;
+        dot.addEventListener("click", () => changeActiveSlide(idx));
+        carouselDots.appendChild(dot);
+    });
+
+    sliderTimerId = setInterval(() => {
+        let nextIdx = (currentSlideIndex + 1) % movies.length;
+        changeActiveSlide(nextIdx);
+    }, 5000);
+}
+
+function changeActiveSlide(targetIdx) {
+    const allSlides = slidesContainer.querySelectorAll(".slide");
+    const allDots = carouselDots.querySelectorAll(".dot");
+
+    if (!allSlides.length) return;
+
+    allSlides[currentSlideIndex].classList.remove("active");
+    allDots[currentSlideIndex].classList.remove("active");
+
+    currentSlideIndex = targetIdx;
+
+    allSlides[currentSlideIndex].classList.add("active");
+    allDots[currentSlideIndex].classList.add("active");
+}
+
+function createCard(movie) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.onclick = () => openModal(movie.id);
+
+    const img = document.createElement("img");
+    img.src = movie.poster_path ? IMAGE_URL + movie.poster_path : "https://via.placeholder.com/500x750?text=No+Poster";
+    img.alt = movie.title;
+
+    const cardBody = document.createElement("div");
+    cardBody.className = "card-body";
+
+    const title = document.createElement("h3");
+    title.textContent = movie.title;
+
+    const cardMeta = document.createElement("div");
+    cardMeta.className = "card-meta";
+
+    const releaseYear = document.createElement("span");
+    releaseYear.textContent = movie.release_date ? movie.release_date.split("-")[0] : "N/A";
+
+    const rating = document.createElement("span");
+    rating.className = "rating";
+    rating.textContent = `⭐ ${movie.vote_average ? movie.vote_average.toFixed(1) : "0.0"}`;
+
+    const overview = document.createElement("p");
+    overview.textContent = movie.overview || "No snapshot synopsis configuration details logged.";
+
+    cardMeta.appendChild(releaseYear);
+    cardMeta.appendChild(rating);
+    cardBody.appendChild(title);
+    cardBody.appendChild(cardMeta);
+    cardBody.appendChild(overview);
+    card.appendChild(img);
+    card.appendChild(cardBody);
+    grid.appendChild(card);
+}
+
+function handleSearch() {
+    const query = searchInput.value.trim();
+    if (!query) {
+        alert("Please enter a movie name.");
+        return;
+    }
+    fetchMovies(`${BASE_URL}/search/movie?api_key=${API_KEY}&query=${encodeURIComponent(query)}`, `Search Results: "${query}"`, false);
+}
+
+searchBtn.onclick = handleSearch;
+searchInput.onkeypress = (e) => { if (e.key === "Enter") handleSearch(); };
+
+async function openModal(id) {
+    modalBody.innerHTML = `<div class="status-message">Loading details...</div>`;
+    modal.classList.add("active");
+    document.body.classList.add("modal-open");
+
+    try {
+        const res = await fetch(`${BASE_URL}/movie/${id}?api_key=${API_KEY}`);
+        const movie = await res.json();
+
+        modalBody.innerHTML = "";
+
+        const layoutDiv = document.createElement("div");
+        layoutDiv.className = "details-layout";
+
+        const posterDiv = document.createElement("div");
+        posterDiv.className = "details-poster";
+        const img = document.createElement("img");
+        img.src = movie.poster_path ? IMAGE_URL + movie.poster_path : "https://via.placeholder.com/500x750?text=No+Poster";
+        img.alt = movie.title;
+        posterDiv.appendChild(img);
+
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "details-info";
+
+        const h2 = document.createElement("h2");
+        h2.textContent = movie.title;
+        infoDiv.appendChild(h2);
+
+        if (movie.tagline) {
+            const tagline = document.createElement("div");
+            tagline.className = "tagline";
+            tagline.textContent = `"${movie.tagline}"`;
+            infoDiv.appendChild(tagline);
+        }
+
+        const pillsContainer = document.createElement("div");
+        pillsContainer.className = "meta-pills";
+
+        const ratePill = document.createElement("span");
+        ratePill.className = "pill accent";
+        ratePill.textContent = `⭐ ${movie.vote_average ? movie.vote_average.toFixed(1) : "0.0"}`;
+        pillsContainer.appendChild(ratePill);
+
+        const datePill = document.createElement("span");
+        datePill.className = "pill";
+        datePill.textContent = movie.release_date || "N/A";
+        pillsContainer.appendChild(datePill);
+
+        const timePill = document.createElement("span");
+        timePill.className = "pill";
+        timePill.textContent = movie.runtime ? `${movie.runtime} min` : "N/A";
+        pillsContainer.appendChild(timePill);
+
+        const countPill = document.createElement("span");
+        countPill.className = "pill";
+        countPill.textContent = `Votes: ${movie.vote_count || 0}`;
+        pillsContainer.appendChild(countPill);
+
+        infoDiv.appendChild(pillsContainer);
+
+        if (movie.genres && movie.genres.length > 0) {
+            const genresTitle = document.createElement("h4");
+            genresTitle.textContent = "Genres";
+            infoDiv.appendChild(genresTitle);
+
+            const genresContainer = document.createElement("div");
+            genresContainer.className = "meta-pills";
+            movie.genres.forEach(g => {
+                const gp = document.createElement("span");
+                gp.className = "pill";
+                gp.textContent = g.name;
+                genresContainer.appendChild(gp);
+            });
+            infoDiv.appendChild(genresContainer);
+        }
+
+        const summaryTitle = document.createElement("h4");
+        summaryTitle.textContent = "Synopsis Overview";
+        const summary = document.createElement("p");
+        summary.textContent = movie.overview || "No comprehensive statement filed.";
+
+        infoDiv.appendChild(summaryTitle);
+        infoDiv.appendChild(summary);
+
+        layoutDiv.appendChild(posterDiv);
+        layoutDiv.appendChild(infoDiv);
+        modalBody.appendChild(layoutDiv);
+
+    } catch (err) {
+        modalBody.innerHTML = `<div class="status-message" style="color:#ff4d4d;">Failed to load structure configs.</div>`;
+    }
+}
+
+function closeModal() {
+    modalBody.innerHTML = "";
+    modal.classList.remove("active");
+    document.body.classList.remove("modal-open");
+}
+
+closeBtn.onclick = closeModal;
+window.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+homeLink.onclick = (e) => { e.preventDefault(); fetchMovies(`${BASE_URL}/trending/movie/day?api_key=${API_KEY}`, "Trending Now", true); };
+popularLink.onclick = (e) => { e.preventDefault(); fetchMovies(`${BASE_URL}/movie/popular?api_key=${API_KEY}`, "Popular Movies", true); };
+topRatedLink.onclick = (e) => { e.preventDefault(); fetchMovies(`${BASE_URL}/movie/top_rated?api_key=${API_KEY}`, "Top Rated Movies", true); };
+</script>
+</body>
+</html>
